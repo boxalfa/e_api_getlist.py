@@ -53,10 +53,11 @@ class class_req :
 # 口座属性クラス
 class class_def_cust_property:
     def __init__(self):
-        self.sUrlRequest = ''     # request用仮想URL
+        self.int_p_no = 0           # request通番
+        self.sUrlRequest = ''       # request用仮想URL
         self.sUrlEvent = ''         # event用仮想URL
-        self.sZyoutoekiKazeiC = ''          # 8.譲渡益課税区分    1：特定  3：一般  5：NISA     ログインの返信データで設定済み。 
-        self.sSecondPassword = ''    # 22.第二パスワード  APIでは第２暗証番号を省略できない。 関連資料:「立花証券・e支店・API、インターフェース概要」の「3-2.ログイン、ログアウト」参照
+        self.sZyoutoekiKazeiC = ''  # 8.譲渡益課税区分    1：特定  3：一般  5：NISA     ログインの返信データで設定済み。 
+        self.sSecondPassword = ''   # 22.第二パスワード  APIでは第２暗証番号を省略できない。 関連資料:「立花証券・e支店・API、インターフェース概要」の「3-2.ログイン、ログアウト」参照
         
     def set_property(self, my_sUrlRequest, my_sUrlEvent, my_sZyoutoekiKazeiC, my_sSecondPassword):
         self.sUrlRequest = my_sUrlRequest     # request用仮想URL
@@ -71,8 +72,8 @@ class class_def_cust_property:
 # 第２引数： ログインは、APIのurlをセット。それ以外はログインで返された'sUrlRequest'の値（仮想url）をセット。
 # 第３引数： requestを投げるとき1カウントアップする。参照渡しで値を引き継ぐため、配列として受け取る。
 # 第４引数： 'p_no'、'p_sd_date'以外の要求項目がセットされている必要がある。クラスの配列として受取る。
-def func_make_url_request(auth_flg, url_target, int_p_no, work_class_req) :
-    int_p_no[0] += 1
+def func_make_url_request(auth_flg, url_target, class_cust_property, work_class_req) :
+    class_cust_property.int_p_no += 1
     str_p_sd_date = func_p_sd_date(datetime.datetime.now())     # システム時刻を所定の書式で取得
     
     work_url = url_target
@@ -80,7 +81,7 @@ def func_make_url_request(auth_flg, url_target, int_p_no, work_class_req) :
         work_url = work_url + 'auth/'
     
     work_url = work_url + '?{\n\t'
-    work_url = work_url + '"p_no":' + func_check_json_dquat(str(int_p_no[0])) + ',\n\t'
+    work_url = work_url + '"p_no":' + func_check_json_dquat(str(class_cust_property.int_p_no)) + ',\n\t'
     work_url = work_url + '"p_sd_date":' + func_check_json_dquat(str_p_sd_date) + ',\n\t'
     
     for i in range(len(work_class_req)) :
@@ -96,8 +97,8 @@ def func_make_url_request(auth_flg, url_target, int_p_no, work_class_req) :
 # 第２引数： ログインは、APIのurlをセット。それ以外はログインで返された'sUrlRequest'の値（仮想url）をセット。
 # 第３引数： requestを投げるときは、1カウントアップする（func_make_url_request関数内で実行）。参照渡しで値を引き継ぐため、配列として受け取る。
 # 第４引数： 'p_no'、'p_sd_date'以外の要求項目がセットされている必要がある。クラスの配列として受取る。
-def func_api_req(auth_flg, url_target, int_p_no, work_class_req):
-    work_url = func_make_url_request(auth_flg, url_target, int_p_no, work_class_req)  # ログインは第１引数にTrueをセット
+def func_api_req(auth_flg, url_target, class_cust_property, work_class_req):
+    work_url = func_make_url_request(auth_flg, url_target, class_cust_property, work_class_req)  # ログインは第１引数にTrueをセット
     print('送信文字列＝')
     print(work_url)  # 送信する文字列
 
@@ -121,9 +122,9 @@ def func_api_req(auth_flg, url_target, int_p_no, work_class_req):
 
 
 # ログイン関数
-# 引数：アクセスするurl（'auth/'以下は付けない）、ユーザーID、パスワード、int_p_no（request通番）, 口座属性クラス
+# 引数：アクセスするurl（'auth/'以下は付けない）、ユーザーID、パスワード、class_cust_property（request通番）, 口座属性クラス
 # 返値：辞書型データ（APIからのjson形式返信データをshift-jisのstring型に変換し、更に辞書型に変換）
-def func_login(url_base, my_userid, my_passwd, int_p_no):
+def func_login(url_base, my_userid, my_passwd, class_cust_property):
     # 送信項目の解説は、マニュアル「立花証券・ｅ支店・ＡＰＩ（ｖ〇）、REQUEST I/F、機能毎引数項目仕様」
     # p2/43 No.1 引数名:CLMAuthLoginRequest を参照してください。
     req_item = [class_req()]   
@@ -152,7 +153,7 @@ def func_login(url_base, my_userid, my_passwd, int_p_no):
     # ログインとログイン後の電文が違うため、第１引数で指示。
     # ログインはTrue。それ以外はFalse。
     # このプログラムでの仕様。APIの仕様ではない。
-    json_return = func_api_req(True, url_base, int_p_no, req_item)  
+    json_return = func_api_req(True, url_base, class_cust_property, req_item)  
     # 戻り値の解説は、マニュアル「立花証券・ｅ支店・ＡＰＩ（ｖ〇）、REQUEST I/F、機能毎引数項目仕様」
     # p2/43 No.2 引数名:CLMAuthLoginAck を参照してください。
 
@@ -161,8 +162,8 @@ def func_login(url_base, my_userid, my_passwd, int_p_no):
 
 
 # 可能額取得
-# 引数：int_p_no（request通番）, 口座属性クラス
-def func_kanougaku( int_p_no, class_cust_property):
+# 引数：class_cust_property（request通番）, 口座属性クラス
+def func_kanougaku( class_cust_property):
     # 送信項目の解説は、マニュアル「立花証券・ｅ支店・ＡＰＩ（ｖ〇）、REQUEST I/F、機能毎引数項目仕様」
     # p10/43 No.10 引数名:CLMZanKaiKanougaku を参照してください。
 
@@ -179,7 +180,7 @@ def func_kanougaku( int_p_no, class_cust_property):
     req_item.append(class_req())
     req_item[-1].add_data(str_key, str_value)
 
-    json_return = func_api_req(False, class_cust_property.sUrlRequest, int_p_no, req_item)
+    json_return = func_api_req(False, class_cust_property.sUrlRequest, class_cust_property, req_item)
     # 戻り値の解説は、マニュアル「立花証券・ｅ支店・ＡＰＩ（ｖ〇）、REQUEST I/F、機能毎引数項目仕様」
     # p10/43 No.10 引数名:CLMZanKaiKanougaku を参照してください。
 
@@ -190,9 +191,9 @@ def func_kanougaku( int_p_no, class_cust_property):
 
 
 # 現物買い注文関数
-# 引数：銘柄コード、市場（現在、東証'00'のみ）、執行条件、価格、株数、int_p_no（request通番）, 口座属性クラス
+# 引数：銘柄コード、市場（現在、東証'00'のみ）、執行条件、価格、株数、class_cust_property（request通番）, 口座属性クラス
 # 返値：辞書型データ（APIからのjson形式返信データをshift-jisのstring型に変換し、更に辞書型に変換）
-def func_order_buy_genbutsu(my_sIssueCode, my_sSizyouC, my_sCondition, my_sOrderPrice, my_sOrderSuryou, int_p_no, class_cust_property):
+def func_order_buy_genbutsu(my_sIssueCode, my_sSizyouC, my_sCondition, my_sOrderPrice, my_sOrderSuryou, class_cust_property):
     # 送信項目の解説は、マニュアル「立花証券・ｅ支店・ＡＰＩ（ｖ〇）、REQUEST I/F、機能毎引数項目仕様」
     # p4/43 No.5 引数名:CLMKabuNewOrder を参照してください。
     
@@ -304,7 +305,7 @@ def func_order_buy_genbutsu(my_sIssueCode, my_sSizyouC, my_sCondition, my_sOrder
     req_item.append(class_req())
     req_item[-1].add_data(str_key, str_value)
 
-    json_return = func_api_req(False, class_cust_property.sUrlRequest, int_p_no, req_item)
+    json_return = func_api_req(False, class_cust_property.sUrlRequest, class_cust_property, req_item)
     # 戻り値の解説は、マニュアル「立花証券・ｅ支店・ＡＰＩ（ｖ〇）、REQUEST I/F、機能毎引数項目仕様」(api_request_if_clumn_v4.pdf)
     # p4-5/43 No.5 引数名:CLMKabuNewOrder 項目1-28 を参照してください。
     
@@ -313,9 +314,9 @@ def func_order_buy_genbutsu(my_sIssueCode, my_sSizyouC, my_sCondition, my_sOrder
 
 
 # 注文取消
-# 引数：注文番号、営業日、int_p_no（request通番）, 口座属性クラス
+# 引数：注文番号、営業日、class_cust_property（request通番）, 口座属性クラス
 # 返値：辞書型データ（APIからのjson形式返信データをshift-jisのstring型に変換し、更に辞書型に変換）
-def func_cancel_order(work_sOrderNumber, work_sEigyouDay, int_p_no, class_cust_property):
+def func_cancel_order(work_sOrderNumber, work_sEigyouDay, class_cust_property):
     # 送信項目の解説は、マニュアル「立花証券・ｅ支店・ＡＰＩ（ｖ〇）、REQUEST I/F、機能毎引数項目仕様」(api_request_if_clumn_v4.pdf)
     # p6/43 No.7 引数名:CLMKabuCancelOrder を参照してください。
     # 注文取り消しは、現物、信用等の区別はない。
@@ -352,7 +353,7 @@ def func_cancel_order(work_sOrderNumber, work_sEigyouDay, int_p_no, class_cust_p
 
 
     for i in range(30):     # 元注文が処理中の場合の待機処理
-        json_return = func_api_req(False, class_cust_property.sUrlRequest, int_p_no, req_item)
+        json_return = func_api_req(False, class_cust_property.sUrlRequest, class_cust_property, req_item)
         # 戻り値の解説は、マニュアル「立花証券・ｅ支店・ＡＰＩ（ｖ〇）、REQUEST I/F、機能毎引数項目仕様」
         # p6/43 No.7 引数名:CLMKabuCancelOrder を参照してください。
         
@@ -369,9 +370,9 @@ def func_cancel_order(work_sOrderNumber, work_sEigyouDay, int_p_no, class_cust_p
 
 
 # 注文一覧の取得
-# 引数：銘柄コード（指定無しは全一覧を取得）、int_p_no（request通番）, 口座属性クラス
+# 引数：銘柄コード（指定無しは全一覧を取得）、class_cust_property（request通番）, 口座属性クラス
 # 返値：辞書型データ（APIからのjson形式返信データをshift-jisのstring型に変換し、更に辞書型に変換）
-def func_get_order_list(str_code, int_p_no, class_cust_property):
+def func_get_order_list(str_code, class_cust_property):
     # 送信項目の解説は、マニュアル「立花証券・ｅ支店・ＡＰＩ（ｖ〇）、REQUEST I/F、機能毎引数項目仕様」
     # p12/43 No.13 引数名:CLMOrderList を参照してください。
         
@@ -398,7 +399,7 @@ def func_get_order_list(str_code, int_p_no, class_cust_property):
     req_item.append(class_req())
     req_item[-1].add_data(str_key, str_value)
 
-    json_return = func_api_req(False, class_cust_property.sUrlRequest, int_p_no, req_item)
+    json_return = func_api_req(False, class_cust_property.sUrlRequest, class_cust_property, req_item)
     # 戻り値の解説は、マニュアル「立花証券・ｅ支店・ＡＰＩ（ｖ〇）、REQUEST I/F、機能毎引数項目仕様」
     # p12-14/43 No.13 引数名:CLMOrderList 1-42 を参照してください。
     # 複数行データがあるとjsonデータがネストする
@@ -408,9 +409,9 @@ def func_get_order_list(str_code, int_p_no, class_cust_property):
 
 
 # 現物保有株一覧の取得
-# 引数：銘柄コード（指定無しは全一覧を取得）、int_p_no（request通番）, 口座属性クラス
+# 引数：銘柄コード（指定無しは全一覧を取得）、class_cust_property（request通番）, 口座属性クラス
 # 返値：辞書型データ（APIからのjson形式返信データをshift-jisのstring型に変換し、更に辞書型に変換）
-def func_get_genbutukabu_list(str_code, int_p_no, class_cust_property):
+def func_get_genbutukabu_list(str_code, class_cust_property):
     # 送信項目の解説は、マニュアル「立花証券・ｅ支店・ＡＰＩ（ｖ〇）、REQUEST I/F、機能毎引数項目仕様」
     # p7/43 No.8 引数名:CLMGenbutuKabuList を参照してください。
 
@@ -432,7 +433,7 @@ def func_get_genbutukabu_list(str_code, int_p_no, class_cust_property):
     req_item.append(class_req())
     req_item[-1].add_data(str_key, str_value)
 
-    json_return = func_api_req(False, class_cust_property.sUrlRequest, int_p_no, req_item)
+    json_return = func_api_req(False, class_cust_property.sUrlRequest, class_cust_property, req_item)
     # 戻り値の解説は、マニュアル「立花証券・ｅ支店・ＡＰＩ（ｖ〇）、REQUEST I/F、機能毎引数項目仕様」
     # p7-8/43 No.8 引数名:CLMGenbutuKabuList 1-31 を参照してください。
     # 複数行データがあるとjsonデータがネストする
@@ -442,9 +443,9 @@ def func_get_genbutukabu_list(str_code, int_p_no, class_cust_property):
 
 
 # 信用建玉一覧の取得
-# 引数：銘柄コード（指定無しは全一覧を取得）、int_p_no（request通番）, 口座属性クラス
+# 引数：銘柄コード（指定無しは全一覧を取得）、class_cust_property（request通番）, 口座属性クラス
 # 返値：辞書型データ（APIからのjson形式返信データをshift-jisのstring型に変換し、更に辞書型に変換）
-def func_get_shinyou_tategyoku_list(str_code, int_p_no, class_cust_property):
+def func_get_shinyou_tategyoku_list(str_code, class_cust_property):
     # 送信項目の解説は、マニュアル「立花証券・ｅ支店・ＡＰＩ（ｖ〇）、REQUEST I/F、機能毎引数項目仕様」
     # p7/43 No.8 引数名:CLMGenbutuKabuList を参照してください。
 
@@ -466,7 +467,7 @@ def func_get_shinyou_tategyoku_list(str_code, int_p_no, class_cust_property):
     req_item.append(class_req())
     req_item[-1].add_data(str_key, str_value)
 
-    json_return = func_api_req(False, class_cust_property.sUrlRequest, int_p_no, req_item)
+    json_return = func_api_req(False, class_cust_property.sUrlRequest, class_cust_property, req_item)
     # 戻り値の解説は、マニュアル「立花証券・ｅ支店・ＡＰＩ（ｖ〇）、REQUEST I/F、機能毎引数項目仕様」
     # p7-8/43 No.8 引数名:CLMGenbutuKabuList 1-31 を参照してください。
     # 複数行データがあるとjsonデータがネストする
@@ -476,9 +477,9 @@ def func_get_shinyou_tategyoku_list(str_code, int_p_no, class_cust_property):
 
 
 # ログアウト
-# 引数：int_p_no（request通番）, 口座属性クラス
+# 引数：class_cust_property（request通番）, 口座属性クラス
 # 返値：辞書型データ（APIからのjson形式返信データをshift-jisのstring型に変換し、更に辞書型に変換）
-def func_logout(int_p_no, class_cust_property):
+def func_logout(class_cust_property):
     # 送信項目の解説は、マニュアル「立花証券・ｅ支店・ＡＰＩ（ｖ〇）、REQUEST I/F、機能毎引数項目仕様」
     # p3/43 No.3 引数名:CLMAuthLogoutRequest を参照してください。
     
@@ -495,7 +496,7 @@ def func_logout(int_p_no, class_cust_property):
     req_item.append(class_req())
     req_item[-1].add_data(str_key, str_value)
     
-    json_return = func_api_req(False, class_cust_property.sUrlRequest, int_p_no, req_item)
+    json_return = func_api_req(False, class_cust_property.sUrlRequest, class_cust_property, req_item)
     # 戻り値の解説は、マニュアル「立花証券・ｅ支店・ＡＰＩ（ｖ〇）、REQUEST I/F、機能毎引数項目仕様」
     # p3/43 No.4 引数名:CLMAuthLogoutAck を参照してください。
 
@@ -523,12 +524,13 @@ url_base = 'https://demo-kabuka.e-shiten.jp/e_api_v4r2/'
 # url_base = 'https://kabuka.e-shiten.jp/e_api_v4r1/'
 
 
+
 my_userid = 'MY_USERID' # 自分のuseridに書き換える
 my_passwd = 'MY_PASSWD' # 自分のpasswordに書き換える
 my_2pwd = 'MY_2PASSWD'  # 自分の第２passwordに書き換える
 
-
 my_code = ''    # 銘柄コード     ''：指定なし の場合、一覧全体を取得する。
+
 
 
 # --- 以上設定項目 -------------------------------------------------------------------------
@@ -547,7 +549,7 @@ print('-- login -----------------------------------------------------')
 # p2/43 No.1 引数名:CLMAuthLoginRequest を参照してください。
 
 # ログイン処理
-json_return = func_login(url_base, my_userid, my_passwd,  int_p_no)
+json_return = func_login(url_base, my_userid, my_passwd,  class_cust_property)
 # 戻り値の解説は、マニュアル「立花証券・ｅ支店・ＡＰＩ（ｖ〇）、REQUEST I/F、機能毎引数項目仕様」
 # p2/43 No.2 引数名:CLMAuthLoginAck を参照してください。
 
@@ -575,7 +577,7 @@ if len(my_sUrlRequest) > 0 and len(my_sUrlEvent) > 0 :  # ログインOKの場�
     print()
     print('-- 買余力の照会 -------------------------------------------------------------')
     
-    json_return = func_kanougaku(int_p_no, class_cust_property)
+    json_return = func_kanougaku(class_cust_property)
     # 戻り値の解説は、マニュアル「立花証券・ｅ支店・ＡＰＩ（ｖ〇）、REQUEST I/F、機能毎引数項目仕様」
     # p10/43 No.10 引数名:CLMZanKaiKanougaku を参照してください。
     
@@ -590,7 +592,7 @@ if len(my_sUrlRequest) > 0 and len(my_sUrlEvent) > 0 :  # ログインOKの場�
     print('-- 注文約定一覧 -------------------------------------------------------------')
     
     my_sIssueCode = my_code     # ''：指定なし の場合全注文を取得する。プログラム最初の部分で設定した銘柄コード。
-    json_return = func_get_order_list(my_sIssueCode, int_p_no, class_cust_property)
+    json_return = func_get_order_list(my_sIssueCode, class_cust_property)
     # 戻り値の解説は、マニュアル「立花証券・ｅ支店・ＡＰＩ（ｖ〇）、REQUEST I/F、機能毎引数項目仕様」
     # p12-14/43 No.13 引数名:CLMOrderList 1-42 を参照してください。
         
@@ -602,7 +604,7 @@ if len(my_sUrlRequest) > 0 and len(my_sUrlEvent) > 0 :  # ログインOKの場�
     print('len(dic_return)= ', len(dic_return))     # 取得データ件数
             
     for i in range(len(dic_return)):
-        print(dic_return[i].get('sOrderOrderNumber'))               # 注文番号
+        print(dic_return[i].get('sOrderOrderNumber'))    # 注文番号
         print(dic_return[i].get('sOrderIssueCode'))      # 銘柄コード
         print(dic_return[i].get('sOrderBaibaiKubun'))    # 売買
         print(dic_return[i].get('sOrderOrderPrice'))     # 価格
@@ -620,7 +622,7 @@ if len(my_sUrlRequest) > 0 and len(my_sUrlEvent) > 0 :  # ログインOKの場�
     # p7/43 No.8 引数名:CLMGenbutuKabuList を参照してください。
     
     my_sIssueCode = my_code     # ''：指定なし の場合全一覧を取得する。プログラム最初の部分で設定した銘柄コード。
-    json_return = func_get_genbutukabu_list(my_sIssueCode, int_p_no, class_cust_property)
+    json_return = func_get_genbutukabu_list(my_sIssueCode, class_cust_property)
     # 戻り値の解説は、マニュアル「立花証券・ｅ支店・ＡＰＩ（ｖ〇）、REQUEST I/F、機能毎引数項目仕様」
     # p7-8/43 No.8 引数名:CLMGenbutuKabuList 1-31 を参照してください。
         
@@ -650,7 +652,7 @@ if len(my_sUrlRequest) > 0 and len(my_sUrlEvent) > 0 :  # ログインOKの場�
     # p8/43 No.9 引数名:CLMShinyouTategyokuList を参照してください。
     
     my_sIssueCode = my_code     # ''：指定なし の場合全一覧を取得する。ププログラム最初の部分で設定した銘柄コード。
-    json_return = func_get_shinyou_tategyoku_list(my_sIssueCode, int_p_no, class_cust_property)
+    json_return = func_get_shinyou_tategyoku_list(my_sIssueCode, class_cust_property)
     # 戻り値の解説は、マニュアル「立花証券・ｅ支店・ＡＰＩ（ｖ〇）、REQUEST I/F、機能毎引数項目仕様」
     # p8-10/43 No.9 引数名:CLMShinyouTategyokuList 1-47 を参照してください。
         
@@ -689,7 +691,7 @@ if len(my_sUrlRequest) > 0 and len(my_sUrlEvent) > 0 :  # ログインOKの場�
     # 送信項目の解説は、マニュアル「立花証券・ｅ支店・ＡＰＩ（ｖ〇）、REQUEST I/F、機能毎引数項目仕様」
     # p3/43 No.3 引数名:CLMAuthLogoutRequest を参照してください。
     
-    json_return = func_logout(int_p_no, class_cust_property)
+    json_return = func_logout(class_cust_property)
 
     # 戻り値の解説は、マニュアル「立花証券・ｅ支店・ＡＰＩ（ｖ〇）、REQUEST I/F、機能毎引数項目仕様」
     # p3/43 No.4 引数名:CLMAuthLogoutAck を参照してください。
